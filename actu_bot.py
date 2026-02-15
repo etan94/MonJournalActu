@@ -30,7 +30,8 @@ SOURCES = {
 def clean_text(text):
     """Nettoie le texte pour le rendu HTML de Telegram"""
     if not text: return ""
-    text = re.sub('<.*?>', '', text) # Supprime les balises HTML résiduelles
+    # Supprime les balises HTML et les espaces inutiles
+    text = re.sub('<.*?>', '', text)
     return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').strip()
 
 def scraper_actus():
@@ -38,7 +39,7 @@ def scraper_actus():
     headers = {'User-Agent': 'Mozilla/5.0'}
     date_str = datetime.now().strftime("%d %B %Y").upper()
     
-    # Design de l'en-tête (Plus fin et moderne)
+    # --- DESIGN DE L'EN-TÊTE ---
     message = (
         "┏" + "━" * 22 + "┓\n"
         f"  <b>✨ MON QUOTIDIEN</b>\n"
@@ -60,11 +61,14 @@ def scraper_actus():
                 for item in items:
                     titre = clean_text(item.title.text)
                     lien = item.link.text.strip()
-                    desc = clean_text(item.description.text)[:110] + "..." if item.description else ""
+                    # On récupère la description (résumé)
+                    desc = clean_text(item.description.text)[:110] + "..." if item.description else "Pas de résumé disponible."
                     
                     count += 1
-                    # Mise en page aérée
+                    # --- MISE EN PAGE DES ARTICLES ---
+                    # Titre en gras et cliquable
                     message += f"<b>{count}. <a href='{lien}'>{titre}</a></b>\n"
+                    # Résumé dans un bloc de citation stylé
                     message += f"<blockquote>{desc}</blockquote>\n"
             except:
                 continue
@@ -78,44 +82,14 @@ def envoyer_telegram(texte):
     payload = {
         "chat_id": CHAT_ID, 
         "text": texte, 
-        "parse_mode": "HTML",
+        "parse_mode": "HTML", # On utilise le mode HTML pour les balises <blockquote> et <pre>
         "disable_web_page_preview": True 
     }
     r = requests.post(url, data=payload)
     if r.status_code == 200:
-        print("✨ Journal envoyé !")
+        print("✨ Journal design envoyé !")
     else:
-        print(f"❌ Erreur : {r.text}")
-
-if __name__ == "__main__":
-    contenu = scraper_actus()
-    envoyer_telegram(contenu)
-                    # Formatage : Titre en gras (cliquable) + description en italique
-                    message += f"📍 *[{titre}]({lien})*\n"
-                    message += f"└ _{desc}_\n\n"
-            except:
-                continue
-        
-        if count == 0:
-            message += "_Aucune actu disponible_\n\n"
-
-    message += "────────────────────\n_✨ Bonne lecture ! (Liens cliquables)_"
-    return message
-
-def envoyer_telegram(texte):
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {
-        "chat_id": CHAT_ID, 
-        "text": texte, 
-        "parse_mode": "Markdown",
-        "disable_web_page_preview": True 
-    }
-    r = requests.post(url, data=payload)
-    if r.status_code == 200:
-        print("✨ Journal complet envoyé !")
-    else:
-        # Si le message est trop long, on essaie de l'envoyer par morceaux
-        print(f"❌ Erreur : {r.text}")
+        print(f"❌ Erreur lors de l'envoi : {r.text}")
 
 if __name__ == "__main__":
     contenu = scraper_actus()
