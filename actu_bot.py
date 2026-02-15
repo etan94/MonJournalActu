@@ -27,42 +27,69 @@ SOURCES = {
     ]
 }
 
-def clean_html(text):
-    """Enlève les balises HTML qui s'invitent parfois dans les descriptions"""
-    clean = re.compile('<.*?>')
-    return re.sub(clean, '', text)
+def clean_text(text):
+    """Nettoie le texte pour le rendu HTML de Telegram"""
+    if not text: return ""
+    text = re.sub('<.*?>', '', text) # Supprime les balises HTML résiduelles
+    return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').strip()
 
 def scraper_actus():
-    print("⏳ Génération du journal avec résumés...")
+    print("⏳ Création du journal haute définition...")
     headers = {'User-Agent': 'Mozilla/5.0'}
     date_str = datetime.now().strftime("%d %B %Y").upper()
     
+    # Design de l'en-tête (Plus fin et moderne)
     message = (
-        "╔════════════════════╗\n"
-        f"  📰  *MON JOURNAL DU JOUR* \n"
-        f"  _Le {date_str}_ \n"
-        "╚════════════════════╝\n\n"
+        "┏" + "━" * 22 + "┓\n"
+        f"  <b>✨ MON QUOTIDIEN</b>\n"
+        f"  <pre>{date_str}</pre>\n"
+        "┗" + "━" * 22 + "┛\n\n"
     )
 
     for categorie, urls in SOURCES.items():
-        message += f"📦 *{categorie}*\n"
-        message += "━━━━━━━━━━━━━━━━━━━━\n"
+        message += f"<b>{categorie}</b>\n"
+        message += "─" * 15 + "\n"
         
         count = 0
         for url in urls:
             try:
                 res = requests.get(url, headers=headers, timeout=10)
                 soup = BeautifulSoup(res.content, 'xml')
-                items = soup.find_all('item')[:2] # 2 articles par source
+                items = soup.find_all('item')[:2]
                 
                 for item in items:
-                    titre = item.title.text.strip()
+                    titre = clean_text(item.title.text)
                     lien = item.link.text.strip()
-                    # On récupère la description et on la nettoie
-                    desc = item.description.text.strip() if item.description else ""
-                    desc = clean_html(desc)[:120] + "..." # On coupe pour pas que ce soit trop long
+                    desc = clean_text(item.description.text)[:110] + "..." if item.description else ""
                     
                     count += 1
+                    # Mise en page aérée
+                    message += f"<b>{count}. <a href='{lien}'>{titre}</a></b>\n"
+                    message += f"<blockquote>{desc}</blockquote>\n"
+            except:
+                continue
+        message += "\n"
+    
+    message += "<i>Bonne lecture sur ta tablette ! 👋</i>"
+    return message
+
+def envoyer_telegram(texte):
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    payload = {
+        "chat_id": CHAT_ID, 
+        "text": texte, 
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True 
+    }
+    r = requests.post(url, data=payload)
+    if r.status_code == 200:
+        print("✨ Journal envoyé !")
+    else:
+        print(f"❌ Erreur : {r.text}")
+
+if __name__ == "__main__":
+    contenu = scraper_actus()
+    envoyer_telegram(contenu)
                     # Formatage : Titre en gras (cliquable) + description en italique
                     message += f"📍 *[{titre}]({lien})*\n"
                     message += f"└ _{desc}_\n\n"
