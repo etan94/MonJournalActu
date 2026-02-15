@@ -8,9 +8,24 @@ TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID") 
 
 SOURCES = {
-    "LE MONDE": {"url": "https://www.lemonde.fr", "selector": ".article__title", "emoji": "🇫🇷"},
-    "TECHCRUNCH": {"url": "https://techcrunch.com", "selector": ".loop-card__title", "emoji": "💻"},
-    "BBC NEWS": {"url": "https://www.bbc.com/news", "selector": "h2", "emoji": "🌍"}
+    # --- CONFIGURATION FRANCOPHONE ---
+CATEGORIES = {
+    "🌍 INTERNATIONAL": [
+        "https://www.lemonde.fr/international/rss_full.xml",
+        "https://www.france24.com/fr/rss"
+    ],
+    "💻 TECH & INNOVATION": [
+        "https://www.clubic.com/feed/news.rss",
+        "https://www.journaldugeek.com/feed/"
+    ],
+    "🔬 SCIENCES & ENVIRONNEMENT": [
+        "https://www.sciencesetavenir.fr/rss.xml",
+        "https://www.futura-sciences.com/rss/actualites.xml"
+    ],
+    "⚽ SPORT": [
+        "https://rmcsport.bfmtv.com/rss/info-rmc-sport/",
+        "https://www.lequipe.fr/rss/actu_rss.xml"
+    ]
 }
 
 def formater_message(data):
