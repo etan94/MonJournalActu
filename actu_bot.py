@@ -3,8 +3,9 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 
 # --- CONFIGURATION ---
-TOKEN = "8580229537:AAFAC3eYbuQergM_iF5IFD5X-J9oXLDl27g"
-CHAT_ID = "8223998173"
+import os
+TOKEN = os.getenv("TELEGRAM_TOKEN")
+CHAT_ID = os.getenv("TELEGRAM_CHAT_ID") 
 
 SOURCES = {
     "LE MONDE": {"url": "https://www.lemonde.fr", "selector": ".article__title", "emoji": "🇫🇷"},
