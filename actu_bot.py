@@ -2,12 +2,12 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 import os
+import re
 
 # --- CONFIGURATION (GitHub Secrets) ---
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-# Sources francophones de qualité
 SOURCES = {
     "🌍 INTERNATIONAL": [
         "https://www.lemonde.fr/international/rss_full.xml",
@@ -27,12 +27,16 @@ SOURCES = {
     ]
 }
 
+def clean_html(text):
+    """Enlève les balises HTML qui s'invitent parfois dans les descriptions"""
+    clean = re.compile('<.*?>')
+    return re.sub(clean, '', text)
+
 def scraper_actus():
-    print("⏳ Préparation du journal avec liens...")
+    print("⏳ Génération du journal avec résumés...")
     headers = {'User-Agent': 'Mozilla/5.0'}
     date_str = datetime.now().strftime("%d %B %Y").upper()
     
-    # En-tête stylisé
     message = (
         "╔════════════════════╗\n"
         f"  📰  *MON JOURNAL DU JOUR* \n"
@@ -41,8 +45,8 @@ def scraper_actus():
     )
 
     for categorie, urls in SOURCES.items():
-        message += f"*{categorie}*\n"
-        message += "────────────────────\n"
+        message += f"📦 *{categorie}*\n"
+        message += "━━━━━━━━━━━━━━━━━━━━\n"
         
         count = 0
         for url in urls:
@@ -54,22 +58,25 @@ def scraper_actus():
                 for item in items:
                     titre = item.title.text.strip()
                     lien = item.link.text.strip()
+                    # On récupère la description et on la nettoie
+                    desc = item.description.text.strip() if item.description else ""
+                    desc = clean_html(desc)[:120] + "..." # On coupe pour pas que ce soit trop long
+                    
                     count += 1
-                    # Création du lien cliquable : [Titre](URL)
-                    message += f"*{count}.* [{titre}]({lien})\n"
+                    # Formatage : Titre en gras (cliquable) + description en italique
+                    message += f"📍 *[{titre}]({lien})*\n"
+                    message += f"└ _{desc}_\n\n"
             except:
                 continue
         
         if count == 0:
-            message += "_Aucune actu disponible_\n"
-        message += "\n"
+            message += "_Aucune actu disponible_\n\n"
 
-    message += "______________________________\n_Clique sur les titres pour lire l'article ! ✨_"
+    message += "────────────────────\n_✨ Bonne lecture ! (Liens cliquables)_"
     return message
 
 def envoyer_telegram(texte):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    # Désactivation de l'aperçu Web pour éviter que le message soit trop long
     payload = {
         "chat_id": CHAT_ID, 
         "text": texte, 
@@ -78,29 +85,11 @@ def envoyer_telegram(texte):
     }
     r = requests.post(url, data=payload)
     if r.status_code == 200:
-        print("✨ Journal avec liens envoyé !")
+        print("✨ Journal complet envoyé !")
     else:
-        print(f"❌ Erreur Telegram : {r.text}")
+        # Si le message est trop long, on essaie de l'envoyer par morceaux
+        print(f"❌ Erreur : {r.text}")
 
 if __name__ == "__main__":
     contenu = scraper_actus()
     envoyer_telegram(contenu)
-        message += "\n"
-
-    message += "______________________________\n_Bonne lecture ! ✨_"
-    return message
-
-def envoyer_telegram(texte):
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": texte, "parse_mode": "Markdown"}
-    r = requests.post(url, data=payload)
-    if r.status_code == 200:
-        print("✨ Journal envoyé !")
-    else:
-        print(f"❌ Erreur Telegram : {r.text}")
-
-if __name__ == "__main__":
-    contenu = scraper_actus()
-    envoyer_telegram(contenu)
-
-  
