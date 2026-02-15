@@ -1,15 +1,14 @@
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
-
-# --- CONFIGURATION ---
 import os
-TOKEN = os.getenv("TELEGRAM_TOKEN")
-CHAT_ID = os.getenv("TELEGRAM_CHAT_ID") 
 
+# --- CONFIGURATION (GitHub Secrets) ---
+TOKEN = os.getenv("TELEGRAM_TOKEN")
+CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+
+# Sources organisées par catégories
 SOURCES = {
-    # --- CONFIGURATION FRANCOPHONE ---
-CATEGORIES = {
     "🌍 INTERNATIONAL": [
         "https://www.lemonde.fr/international/rss_full.xml",
         "https://www.france24.com/fr/rss"
@@ -18,7 +17,7 @@ CATEGORIES = {
         "https://www.clubic.com/feed/news.rss",
         "https://www.journaldugeek.com/feed/"
     ],
-    "🔬 SCIENCES & ENVIRONNEMENT": [
+    "🔬 SCIENCES & FUTUR": [
         "https://www.sciencesetavenir.fr/rss.xml",
         "https://www.futura-sciences.com/rss/actualites.xml"
     ],
@@ -28,61 +27,58 @@ CATEGORIES = {
     ]
 }
 
-def formater_message(data):
-    """Crée une mise en page élégante et aérée"""
+def scraper_actus():
+    print("⏳ Préparation du journal...")
+    headers = {'User-Agent': 'Mozilla/5.0'}
     date_str = datetime.now().strftime("%d %B %Y").upper()
     
-    # En-tête du journal
-    header = (
+    # Construction du message (Design Harmonieux)
+    message = (
         "╔════════════════════╗\n"
         f"  📰  *MON JOURNAL DU JOUR* \n"
         f"  _Le {date_str}_ \n"
         "╚════════════════════╝\n\n"
     )
-    
-    corps = ""
-    for nom, infos in data.items():
-        corps += f"{infos['emoji']}  *__ {nom} __*\n" # Titre de la source souligné
-        for i, titre in enumerate(infos['titres'], 1):
-            corps += f"*{i}.* {titre}\n" # Numérotation en gras
-        corps += "\n" # Espace entre les blocs
+
+    for categorie, urls in SOURCES.items():
+        message += f"*{categorie}*\n"
+        message += "────────────────────\n"
         
-    footer = "────────────────────\n_Bonne lecture ! ✨_"
-    
-    return header + corps + footer
+        titres_trouves = []
+        for url in urls:
+            try:
+                res = requests.get(url, headers=headers, timeout=10)
+                # On utilise 'xml' pour lire les flux RSS proprement
+                soup = BeautifulSoup(res.content, 'xml')
+                items = soup.find_all('item')[:2] # 2 titres par source
+                for item in items:
+                    t = item.title.text.strip()
+                    if t not in titres_trouves:
+                        titres_trouves.append(t)
+            except:
+                continue
+        
+        if titres_trouves:
+            for i, t in enumerate(titres_trouves, 1):
+                message += f"*{i}.* {t}\n"
+        else:
+            message += "_Aucune actu disponible_\n"
+        message += "\n"
 
-def scraper_et_envoyer():
-    print("⏳ Préparation de ton journal harmonieux...")
-    data_finale = {}
-    headers = {'User-Agent': 'Mozilla/5.0'}
+    message += "______________________________\n_Bonne lecture ! ✨_"
+    return message
 
-    for nom, config in SOURCES.items():
-        try:
-            res = requests.get(config['url'], headers=headers, timeout=10)
-            soup = BeautifulSoup(res.text, 'html.parser')
-            # On récupère les 3 meilleurs titres
-            titres = [t.get_text(strip=True) for t in soup.select(config['selector'])[:3]]
-            data_finale[nom] = {"titres": titres, "emoji": config['emoji']}
-        except:
-            data_finale[nom] = {"titres": ["⚠️ Erreur de connexion"], "emoji": "❌"}
-
-    # Génération du message stylé
-    message_propre = formater_message(data_finale)
-    
-    # Envoi via l'API Telegram
+def envoyer_telegram(texte):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {
-        "chat_id": CHAT_ID,
-        "text": message_propre,
-        "parse_mode": "Markdown" # Utilisation de Markdown classique pour la stabilité
-    }
-    
-    response = requests.post(url, data=payload)
-    if response.status_code == 200:
-        print("✨ Journal envoyé avec succès !")
+    payload = {"chat_id": CHAT_ID, "text": texte, "parse_mode": "Markdown"}
+    r = requests.post(url, data=payload)
+    if r.status_code == 200:
+        print("✨ Journal envoyé !")
     else:
-        print(f"❌ Erreur : {response.text}")
+        print(f"❌ Erreur Telegram : {r.text}")
 
 if __name__ == "__main__":
-    scraper_et_envoyer()
+    contenu = scraper_actus()
+    envoyer_telegram(contenu)
+
   
