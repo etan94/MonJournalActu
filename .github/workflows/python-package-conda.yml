@@ -1,9 +1,9 @@
-name: YouTube Monitor Bot
+name: YouTube Bot
 
 on:
   schedule:
     - cron: '*/10 * * * *' # Toutes les 10 minutes
-  workflow_dispatch: # Bouton manuel
+  workflow_dispatch: # Bouton manuel pour tester
 
 permissions:
   contents: write
@@ -31,9 +31,13 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python main.py
 
-      - name: Sauvegarde de la mémoire (Git Push)
+      - name: Sauvegarde mémoire
         run: |
           git config --global user.name 'GitHub Bot'
+          git config --global user.email 'bot@noreply.github.com'
+          git add last_videos.txt
+          git commit -m "Auto-update" || echo "Rien a changer"
+          git push
           git config --global user.email 'bot@noreply.github.com'
           git add last_videos.txt
           # La ligne magique ci-dessous empêche le crash si rien n'a changé
