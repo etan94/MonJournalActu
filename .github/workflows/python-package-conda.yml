@@ -38,12 +38,3 @@ jobs:
           git add last_videos.txt
           git commit -m "Update" || echo "Rien a faire"
           git push
-          git config --global user.email 'bot@noreply.github.com'
-          git add last_videos.txt
-          git commit -m "Auto-update" || echo "Rien a changer"
-          git push
-          git config --global user.email 'bot@noreply.github.com'
-          git add last_videos.txt
-          # La ligne magique ci-dessous empêche le crash si rien n'a changé
-          git commit -m "Auto-update memory" || echo "Aucun changement à sauvegarder"
-          git push
