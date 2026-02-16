@@ -108,6 +108,43 @@ def check_videos():
 
 if __name__ == "__main__":
     check_videos()
+    })
+
+def check_videos():
+    print("--- Démarrage du Scan ---")
+    last_ids = get_last_ids()
+    updated = False
+
+    for name, channel_id in CHANNELS.items():
+        try:
+            url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
+            res = requests.get(url, timeout=10)
+            if res.status_code != 200: continue
+            
+            soup = BeautifulSoup(res.content, "xml")
+            entry = soup.find("entry")
+            if not entry: continue
+
+            vid_id = entry.find("videoId").text
+            title = entry.find("title").text
+            link = entry.find("link")["href"]
+
+            if last_ids.get(name) != vid_id:
+                print(f"Nouveau: {title}")
+                send_telegram(f"🚨 **{name.upper()}**\n\n🎬 {title}\n🔗 [Voir]({link})")
+                last_ids[name] = vid_id
+                updated = True
+        except Exception as e:
+            print(f"Erreur {name}: {e}")
+
+    if updated:
+        save_ids(last_ids)
+        print("Sauvegarde effectuée.")
+    else:
+        print("Rien de nouveau.")
+
+if __name__ == "__main__":
+    check_videos()
                     parts = line.strip().split(":", 1)
                     if len(parts) == 2:
                         data[parts[0]] = parts[1]
