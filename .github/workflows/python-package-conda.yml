@@ -1,48 +1,41 @@
-name: Check YouTube Fast
+name: YouTube Monitor Bot
 
 on:
   schedule:
-    - cron: '*/5 * * * *' # <--- C'est ici que ça change (Toutes les 5 minutes)
-  workflow_dispatch:
+    - cron: '*/10 * * * *' # Toutes les 10 minutes
+  workflow_dispatch: # Bouton manuel
 
 permissions:
   contents: write
 
 jobs:
-  build:
+  run-bot:
     runs-on: ubuntu-latest
-
+    
     steps:
-    - uses: actions/checkout@v3
+      - name: Récupération du code
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
+      - name: Installation Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-
-    - name: Run script
-      env:
-        TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-      run: python check_youtube.py
-
-    - name: Save memory (Commit changes)
-      run: |
-        git config --global user.name 'GitHub Action Bot'
-        git config --global user.email 'action@github.com'
-        git add last_videos.txt
-        git diff --quiet && git diff --staged --quiet || (git commit -m "Update last videos" && git push)
-      - name: Commit changes
+      - name: Installation des librairies
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          # On vérifie si le fichier existe pour éviter une erreur
-          touch last_videos.txt 
+          pip install -r requirements.txt
+
+      - name: Lancement du Script
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main.py
+
+      - name: Sauvegarde de la mémoire (Git Push)
+        run: |
+          git config --global user.name 'GitHub Bot'
+          git config --global user.email 'bot@noreply.github.com'
           git add last_videos.txt
-          git commit -m "Update last videos log" || exit 0
+          # La ligne magique ci-dessous empêche le crash si rien n'a changé
+          git commit -m "Auto-update memory" || echo "Aucun changement à sauvegarder"
           git push
