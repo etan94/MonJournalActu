@@ -1,21 +1,39 @@
-name: Test Bot
-on: workflow_dispatch
+name: YouTube Bot
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'  # Toutes les 15 minutes
+  workflow_dispatch:        # Bouton manuel
+
+permissions:
+  contents: write
+
 jobs:
-  test:
+  run-bot:
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v3
-      - name: AFFICHER LES FICHIERS
-        run: ls -R
-      - setup-python@v4
+      - name: 1. Récupération du code
+        uses: actions/checkout@v3
+
+      - name: 2. Installation Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      - run: pip install requests beautifulsoup4 lxml
-      - run: python main.py
+
+      - name: 3. Installation des outils
+        run: pip install requests beautifulsoup4 lxml
+
+      - name: 4. Lancement du Robot
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main.py
+
+      - name: 5. Sauvegarde de la mémoire
+        run: |
+          git config --global user.name 'GitHub Bot'
           git config --global user.email 'bot@noreply.github.com'
           git add last_videos.txt
-          git commit -m "Update" || echo "Rien a changer"
+          git commit -m "Mise a jour" || echo "Rien a changer"
           git push
