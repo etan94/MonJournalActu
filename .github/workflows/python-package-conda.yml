@@ -2,9 +2,13 @@ name: Check YouTube Fast
 
 on:
   schedule:
-    # Cette ligne dit à GitHub de lancer le script TOUTES LES 5 MINUTES
     - cron: '*/5 * * * *'
-  workflow_dispatch: # Permet de le lancer à la main pour tester
+  workflow_dispatch:
+
+# --- AJOUTE CES 3 LIGNES ICI ---
+permissions:
+  contents: write
+# ------------------------------
 
 jobs:
   build:
@@ -12,6 +16,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          # Ajoute ceci pour être sûr que le push fonctionne
+          token: ${{ secrets.GITHUB_TOKEN }} 
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -28,11 +35,11 @@ jobs:
         run: python youtube_tracker.py
 
       - name: Commit changes
-        # Sauvegarde le fichier pour ne pas recevoir 20 fois la même vidéo
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          # On vérifie si le fichier existe pour éviter une erreur
+          touch last_videos.txt 
           git add last_videos.txt
           git commit -m "Update last videos log" || exit 0
           git push
-          
